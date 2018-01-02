@@ -1264,6 +1264,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
         textRunBreakAllowed: false,
         transform: null,
         fontName: null,
+        actualText: null,
       };
       var SPACE_FACTOR = 0.3;
       var MULTI_SPACE_FACTOR = 1.5;
@@ -1367,7 +1368,7 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
       }
 
       function runBidiTransform(textChunk) {
-        var str = textChunk.str.join('');
+        var str = textChunk.actualText || textChunk.str.join('');
         var bidiResult = bidi(str, -1, textChunk.vertical);
         return {
           str: (normalizeWhitespace ? replaceWhitespace(bidiResult.str) :
@@ -1444,6 +1445,8 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
           textChunk.lastAdvanceHeight = height;
           textChunk.height += Math.abs(height);
         }
+
+        textChunk.actualText = textState.actualText;
 
         return textChunk;
       }
@@ -1788,6 +1791,15 @@ var PartialEvaluator = (function PartialEvaluatorClosure() {
                 textState.fontSize = gStateFont[1];
                 next(handleSetFont(null, gStateFont[0]));
                 return;
+              }
+              break;
+            case OPS.beginMarkedContentProps:
+              var tagName = args[0];
+              var propertiyList = args[1];
+              if (isName(tagName) && isDict(propertiyList)) {
+                if (tagName.name === 'Span' && propertiyList.has('ActualText')) {
+                  textState.setActualText(args[1].get('ActualText'));
+                }
               }
               break;
           } // switch
@@ -2695,6 +2707,7 @@ var TextState = (function TextStateClosure() {
     this.leading = 0;
     this.textHScale = 1;
     this.textRise = 0;
+    this.actualText = null;
   }
 
   TextState.prototype = {
@@ -2757,6 +2770,9 @@ var TextState = (function TextStateClosure() {
       clone.textLineMatrix = this.textLineMatrix.slice();
       clone.fontMatrix = this.fontMatrix.slice();
       return clone;
+    },
+    setActualText: function TextState_setActualText(s) {
+      this.actualText = s;
     },
   };
   return TextState;

@@ -141,6 +141,16 @@ var Parser = (function ParserClosure() {
         if (cipherTransform) {
           str = cipherTransform.decryptString(str);
         }
+
+        // Convert UTF16 Big Endian text
+        if (str.length >= 2 &&
+            str.charCodeAt(0) === 0xFE && str.charCodeAt(1) === 0xFF) {
+          var cp = [];
+          for (var i = 2; i < str.length; i += 2) {
+            cp.push((str.charCodeAt(i) << 8) | str.charCodeAt(i + 1));
+          }
+          str = String.fromCharCode.apply(String, cp);
+        }
         return str;
       }
 
